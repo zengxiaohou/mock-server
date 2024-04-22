@@ -9,40 +9,56 @@
       >
       </el-input>
       <el-collapse v-if="isMockEmpty">
-        <el-collapse-item v-for="(val, key) in matchMocks" :key="key">
+        <el-collapse-item
+          v-for="(businessCgis, businessKey) in matchMocks"
+          :key="businessKey"
+        >
           <template slot="title">
-            <el-checkbox
-              @click.stop
-              class="title-check"
-              :value="isTitleChecked(key)"
-              :disabled="isTitleCheckDisable(key)"
-              @change="bindTitleCheck(key)"
-            ></el-checkbox>
-            <mk-highlight :str="search" class="title">{{ key }}</mk-highlight>
-            <el-button
-              @click.stop="bindVerify($event, key)"
-              size="mini"
-              class="btn"
-              >verify</el-button
-            >
-            <copy-btn
-              :content="key"
-              size="mini"
-              class="btn last"
-              @click.native.stop
-              @success="$message.success('copy url: ' + key)"
-              @error="$message.error('error occurred')"
-              type="primary"
-              >copy</copy-btn
-            >
+            <div>{{ businessKey }}</div>
           </template>
-          <div v-for="(mock, i) in val" :key="mock.label">
-            <el-checkbox
-              :value="mockChecked[key] === i"
-              @change="bindCheckItem(key, i)"
-              >{{ mock.label }}</el-checkbox
-            >
-          </div>
+          <el-collapse-item
+            v-for="(cgis, cgiKey) in businessCgis"
+            :key="cgiKey"
+          >
+            <template slot="title">
+              <el-checkbox
+                @click.stop
+                class="title-check"
+                :value="isTitleChecked(businessKey, cgiKey)"
+                :disabled="isTitleCheckDisable(businessKey, cgiKey)"
+                @change="bindTitleCheck(businessKey, cgiKey)"
+              ></el-checkbox>
+              <mk-highlight :str="search" class="title">{{
+                cgiKey
+              }}</mk-highlight>
+              <el-button
+                @click.stop="bindVerify($event, businessKey, cgiKey)"
+                size="mini"
+                class="btn"
+                >verify</el-button
+              >
+              <copy-btn
+                :content="cgiKey"
+                size="mini"
+                class="btn last"
+                @click.native.stop
+                @success="$message.success('copy url: ' + cgiKey)"
+                @error="$message.error('error occurred')"
+                type="primary"
+                >copy</copy-btn
+              >
+            </template>
+            <div v-for="(mock, i) in cgis" :key="mock.label">
+              <el-checkbox
+                :value="
+                  mockChecked[businessKey] &&
+                    mockChecked[businessKey][cgiKey] === i
+                "
+                @change="bindCheckItem(businessKey, cgiKey, i)"
+                >{{ mock.label }}</el-checkbox
+              >
+            </div>
+          </el-collapse-item>
         </el-collapse-item>
       </el-collapse>
       <div v-else class="tips">no api match `{{ this.search }}`</div>
@@ -71,19 +87,19 @@ export default {
   computed: {
     ...mapState(['mocks', 'mockChecked']),
     isEmpty() {
-      return _.isEmpty(this.mocks);
+      return _.isEmpty(this.mocks.data);
     },
     isMockEmpty() {
       return Object.keys(this.matchMocks).length !== 0;
     },
     matchMocks() {
       if (!this.search || this.search.length === 0) {
-        return this.mocks;
+        return this.mocks.data;
       }
       let mocks = {};
-      Object.keys(this.mocks).forEach(k => {
+      Object.keys(this.mocks.data).forEach(k => {
         if (k.includes(this.search)) {
-          mocks[k] = this.mocks[k];
+          mocks[k] = this.mocks.data[k];
         }
       });
       return mocks;
@@ -103,35 +119,41 @@ export default {
       }
       this.$message.success('success');
     },
-    async reqestMockCheck(id, index) {
+    async reqestMockCheck(businessKey, cgiKey, index) {
       const { $req, $awaitTo } = this;
 
       const req = $req({
         url: '/$mock-check',
-        data: { id, index }
+        data: { businessKey, id: cgiKey, index }
       });
 
       await $awaitTo(req);
     },
-    bindCheckItem(key, index) {
-      console.log(this.mockChecked[key]);
-      switch (this.mockChecked[key]) {
-        case undefined:
-          break;
-        case index:
-          index = -1;
-          break;
+    bindCheckItem(businessKey, cgiKey, index) {
+      if (this.mockChecked && this.mockChecked[businessKey]) {
+        switch (this.mockChecked[businessKey][cgiKey]) {
+          case undefined:
+            break;
+          case index:
+            index = -1;
+            break;
+        }
       }
-      this.$store.commit('mockChecked', { key, index });
-      this.reqestMockCheck(key, index);
+      this.$store.commit('mockChecked', { cgiKey, index });
+      this.reqestMockCheck(businessKey, cgiKey, index);
     },
-    bindVerify(e, key) {
-      const url = `${this.base}/$mock-api?api=${key}`;
+    bindVerify(e, businessKey, key) {
+      const url = `${
+        this.base
+      }/$mock-api?businessKey=${businessKey}&api=${key}`;
       window.open(url, '_blank');
     },
-    isTitleCheckDisable(key) {
-      const apiMocks = this.mocks[key];
-      const checked = this.mockChecked[key];
+    isTitleCheckDisable(businessKey, cgiKey) {
+      const apiMocks = this.mocks.data[businessKey][cgiKey];
+      const checked =
+        this.mockChecked &&
+        this.mockChecked[businessKey] &&
+        this.mockChecked[businessKey][cgiKey];
 
       if (apiMocks.length === 1) {
         return false;
@@ -143,8 +165,17 @@ export default {
 
       return true;
     },
-    isTitleChecked(key) {
-      const checked = this.mockChecked[key];
+    isTitleChecked(businessKey, cgiKey) {
+      console.log(
+        'xixi this.mockChecked',
+        this.mockChecked,
+        businessKey,
+        cgiKey
+      );
+      const checked =
+        this.mockChecked &&
+        this.mockChecked[businessKey] &&
+        this.mockChecked[businessKey][cgiKey];
 
       if (checked !== -1 && (checked || checked === 0)) {
         return true;
@@ -152,17 +183,20 @@ export default {
 
       return false;
     },
-    bindTitleCheck(key) {
-      const apiMocks = this.mocks[key];
-      const checked = this.mockChecked[key];
+    bindTitleCheck(businessKey, cgiKey) {
+      const apiMocks = this.mocks[businessKey][cgiKey];
+      const checked =
+        this.mockChecked &&
+        this.mockChecked[businessKey] &&
+        this.mockChecked[businessKey][cgiKey];
 
       if (apiMocks.length === 1) {
-        return this.bindCheckItem(key, 0);
+        return this.bindCheckItem(cgiKey, 0);
       }
 
       // 已勾选
       if (checked !== -1 && (checked || checked === 0)) {
-        this.bindCheckItem(key, checked);
+        this.bindCheckItem(cgiKey, checked);
       }
     }
   }
