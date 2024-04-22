@@ -17,8 +17,8 @@
       <el-aside class="app-menu" width="20%">
         <el-menu class="menu" :router="true" :default-active="$route.path">
           <el-menu-item index="/mocks">Mock data</el-menu-item>
-          <el-menu-item index="/sets">Mock set</el-menu-item>
-          <el-menu-item index="/proxys">Proxy config</el-menu-item>
+          <!-- <el-menu-item index="/sets">Mock set</el-menu-item>
+          <el-menu-item index="/proxys">Proxy config</el-menu-item> -->
         </el-menu>
       </el-aside>
       <el-main class="app-content">
