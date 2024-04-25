@@ -1,3 +1,4 @@
+.DS_Store
 # dev data
 fe/mock/**
 fe/dist
