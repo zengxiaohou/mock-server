@@ -8,43 +8,50 @@
         v-model="search"
       >
       </el-input>
-      <el-collapse v-if="isMockEmpty">
-        <el-collapse-item v-for="(val, key) in matchMocks" :key="key">
-          <template slot="title">
-            <el-checkbox
-              @click.stop
-              class="title-check"
-              :value="isTitleChecked(key)"
-              :disabled="isTitleCheckDisable(key)"
-              @change="bindTitleCheck(key)"
-            ></el-checkbox>
-            <mk-highlight :str="search" class="title">{{ key }}</mk-highlight>
-            <el-button
-              @click.stop="bindVerify($event, key)"
-              size="mini"
-              class="btn"
-              >verify</el-button
-            >
-            <copy-btn
-              :content="key"
-              size="mini"
-              class="btn last"
-              @click.native.stop
-              @success="$message.success('copy url: ' + key)"
-              @error="$message.error('error occurred')"
-              type="primary"
-              >copy</copy-btn
-            >
-          </template>
-          <div v-for="(mock, i) in val" :key="mock.label">
-            <el-checkbox
-              :value="mockChecked[key] === i"
-              @change="bindCheckItem(key, i)"
-              >{{ mock.label }}</el-checkbox
-            >
-          </div>
-        </el-collapse-item>
-      </el-collapse>
+      <template v-if="isMockEmpty">
+        <el-collapse>
+          <el-collapse-item v-for="(val, key) in matchMocks" :key="key">
+            <template slot="title">
+              <el-checkbox
+                @click.stop
+                class="title-check"
+                :value="isTitleChecked(key)"
+                :disabled="isTitleCheckDisable(key)"
+                @change="bindTitleCheck(key)"
+              ></el-checkbox>
+              <mk-highlight :str="search" class="title">{{ key }}</mk-highlight>
+              <el-button
+                @click.stop="bindVerify($event, key)"
+                size="mini"
+                class="btn"
+                >verify</el-button
+              >
+              <copy-btn
+                :content="key"
+                size="mini"
+                class="btn last"
+                @click.native.stop
+                @success="$message.success('copy url: ' + key)"
+                @error="$message.error('error occurred')"
+                type="primary"
+                >copy</copy-btn
+              >
+            </template>
+            <div v-for="(mock, i) in val" :key="mock.label">
+              <el-checkbox
+                :value="mockChecked[key] === i"
+                @change="bindCheckItem(key, i)"
+                >{{ mock.label }}</el-checkbox
+              >
+            </div>
+          </el-collapse-item>
+        </el-collapse>
+        <el-button type="primary" size="medium" @click="saveSet"
+          >保存为场景</el-button
+        >
+        <NewSetDialog :visible="dialogVisible" @close="closeDialog" />
+      </template>
+
       <div v-else class="tips">no api match `{{ this.search }}`</div>
     </div>
     <div v-if="isEmpty" class="tips">
@@ -58,14 +65,18 @@
 
 <script>
 import { mapState } from 'vuex';
-
+import NewSetDialog from './NewSetDialog.vue';
 export default {
   name: 'Page-Mock',
+  components: {
+    NewSetDialog
+  },
   data() {
     const base = `${window.location.protocol}//${window.location.host}`;
     return {
       search: '',
-      base
+      base,
+      dialogVisible: false
     };
   },
   computed: {
@@ -90,6 +101,12 @@ export default {
     }
   },
   methods: {
+    closeDialog() {
+      this.dialogVisible = false;
+    },
+    saveSet() {
+      this.dialogVisible = true;
+    },
     async bindGenerate() {
       const { $req, $awaitTo } = this;
 
